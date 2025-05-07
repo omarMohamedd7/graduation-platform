@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\ProjectUpdateController;
+use App\Http\Controllers\SupervisorNoteController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -11,7 +13,7 @@ use App\Http\Controllers\ProposalController;
 |
 | Here is where you can register API routes for your application. These
 | routes are loaded by the RouteServiceProvider and all of them will
-| be assigned the "api" middleware group. Make something great!
+| be assigned to the "api" middleware group. Make something great!
 |
 */
 
@@ -47,6 +49,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/proposals/{id}/reject', [ProposalController::class, 'reject']);
     Route::post('/proposals/{id}/assign-supervisor', [ProposalController::class, 'assignSupervisor']);
     Route::post('/proposals/{id}/respond-assignment', [ProposalController::class, 'respondAssignment']);
+    
+    // Project Update routes
+    Route::middleware(['auth:sanctum'])->group(function () {
+        // Project updates routes
+        Route::post('/project-updates', [ProjectUpdateController::class, 'store']);
+        Route::get('/projects/{id}/updates', [ProjectUpdateController::class, 'index']);
+    });
+    // Supervisor Note routes
+    Route::post('/projects/{id}/supervisor-notes', [SupervisorNoteController::class, 'store']);
+    Route::get('/projects/{id}/supervisor-notes', [SupervisorNoteController::class, 'index']);
 });
 
 // Add this route for direct testing

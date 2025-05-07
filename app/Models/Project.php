@@ -36,4 +36,20 @@ class Project extends Model
     {
         return $this->belongsTo(Proposal::class);
     }
+
+    /**
+     * Get the updates for this project
+     */
+    public function projectUpdates()
+    {
+        return $this->hasMany(ProjectUpdate::class);
+    }
+
+    /**
+     * Get the supervisor notes for this project
+     */
+    public function supervisorNotes()
+    {
+        return $this->hasMany(SupervisorNote::class);
+    }
 }

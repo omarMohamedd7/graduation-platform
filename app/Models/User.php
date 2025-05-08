@@ -80,4 +80,8 @@ class User extends Authenticatable
     {
         return $this->role === self::ROLE_COMMITTEE_HEAD;
     }
+    public function proposal()
+        {
+        return $this->hasOne(Proposal::class, 'student_id');
+        }
 }

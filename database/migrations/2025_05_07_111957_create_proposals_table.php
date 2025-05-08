@@ -13,10 +13,11 @@ return new class extends Migration
 {
     Schema::create('proposals', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
+        $table->foreignId('student_id')->constrained('users',)->onDelete('cascade');
         $table->string('title');
         $table->text('description');
-        $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED'])->default('PENDING');
+        $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED', 'IN_PROGRESS'])->default(value: 'PENDING');
+        $table->foreignId('department_head')->nullable()->constrained('users',)->nullOnDelete();
         $table->text('committee_feedback')->nullable();
         $table->timestamps();
     });

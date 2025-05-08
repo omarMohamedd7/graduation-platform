@@ -76,13 +76,13 @@ class UserController extends Controller
                 'password' => 'required',
             ]);
             $user = User::where('email', $credentials['email'])->first();
-            if()
+
             // $user = User::first();
             // dd(Hash::make($credentials['password']) .'      '. $user->password);
             if ($user && Hash::check($credentials['password'], $user->password)){
                 Auth::login($user);
                 $request->session()->regenerate();
-                // dd('aa');
+                
                 return redirect()->intended(route('dashboard'));
             }
 
@@ -92,7 +92,7 @@ class UserController extends Controller
         ])->onlyInput('email');
 
         } catch (\Exception $e) {
-            return response()->view('errors.500', [], 404);
+            return response()->view('errors.500', [], 500);
 
 
         }
@@ -394,3 +394,4 @@ class UserController extends Controller
         }
     }
 }
+

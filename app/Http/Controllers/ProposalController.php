@@ -61,27 +61,18 @@ class ProposalController extends Controller
     public function store(StoreProposalRequest $request)
     {
         try {
+
             $proposal = $this->proposalService->storeProposal($request->validated());
-            
-            return $this->formatResponse(
-                'Proposal submitted successfully',
-                new ProposalResource($proposal),
-                null,
-                201
-            );
+
+            return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error creating proposal', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
-            return $this->formatResponse(
-                'Failed to create proposal',
-                null,
-                ['error' => $e->getMessage()],
-                500
-            );
-        }
+
+            return response()->view('errors.500', [], 500);
+    }
     }
 
     // COMMITTEE_HEAD or SUPERVISOR: View all proposals
@@ -141,13 +132,13 @@ class ProposalController extends Controller
     {
         try {
             $proposal = $this->proposalService->approveProposal(
-                $id, 
+                $id,
                 $request->input('committee_feedback')
             );
-            
+
             return $this->formatResponse(
                 $proposal->supervisor_id
-                    ? 'Proposal approved and proposed supervisor assigned' 
+                    ? 'Proposal approved and proposed supervisor assigned'
                     : 'Proposal approved',
                 new ProposalResource($proposal)
             );
@@ -180,7 +171,7 @@ class ProposalController extends Controller
                 $id,
                 $request->input('committee_feedback')
             );
-            
+
             return $this->formatResponse(
                 'Proposal rejected',
                 new ProposalResource($proposal)
@@ -211,7 +202,7 @@ class ProposalController extends Controller
     {
         try {
             $proposal = $this->proposalService->assignSupervisor($id, $request->validated()['supervisor_id']);
-            
+
             return $this->formatResponse(
                 'Supervisor assigned successfully',
                 new ProposalResource($proposal)
@@ -245,7 +236,7 @@ class ProposalController extends Controller
     {
         try {
             $result = $this->proposalService->respondToAssignment($id, $request->validated()['response']);
-            
+
             if ($request->input('response') === 'ACCEPTED') {
                 return $this->formatResponse(
                     'Assignment accepted, project created, and proposal moved to IN_PROGRESS',

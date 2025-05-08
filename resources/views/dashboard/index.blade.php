@@ -19,7 +19,7 @@
             @else
                 <!-- Regular User Content -->
                 <h1>Welcome, {{ auth()->user()->name }}!</h1>
-                <x-dashboard.user titlePage="User Dashboard" />
+                + <x-dashboard.user :proposal="$proposal"/>
             @endif
         </div>
 

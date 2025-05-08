@@ -24,23 +24,25 @@ class ProposalService
             'authenticated' => Auth::check(),
             'request_data' => $data
         ]);
+        $user_department = Auth::user()->department;
+        $Head_id = User::where('department', $user_department)->where('role',User::ROLE_COMMITTEE_HEAD)->first()->id;
 
         $proposal = Proposal::create([
             'student_id' => Auth::user()->id,
             'title' => $data['title'],
             'description' => $data['description'],
-            'proposed_supervisor_id' => $data['proposed_supervisor_id'] ?? null,
+            'department_head' => $Head_id ?? null,
             'status' => 'PENDING',
         ]);
-        
+
         Log::info('Proposal created successfully', [
             'proposal_id' => $proposal->id,
             'student_id' => Auth::user()->id,
             'proposed_supervisor_id' => $data['proposed_supervisor_id'] ?? null
         ]);
-        
+
         $proposal->load(['student', 'proposedSupervisor']);
-        
+
         return $proposal;
     }
 
@@ -77,22 +79,22 @@ class ProposalService
     public function approveProposal(int $id, ?string $committeeFeedback = null): Proposal
     {
         $proposal = Proposal::findOrFail($id);
-        
+
         // Check if there's a proposed supervisor
         $updates = [
             'status' => 'APPROVED',
             'committee_feedback' => $committeeFeedback,
         ];
-        
+
         // If there's a proposed supervisor, automatically assign them
         if ($proposal->proposed_supervisor_id) {
             // Verify the proposed supervisor is valid
             $supervisor = User::findOrFail($proposal->proposed_supervisor_id);
-            
+
             if ($supervisor->role === User::ROLE_SUPERVISOR) {
                 $updates['supervisor_id'] = $proposal->proposed_supervisor_id;
                 $updates['supervisor_response'] = 'PENDING';
-                
+
                 Log::info('Automatically assigned proposed supervisor', [
                     'proposal_id' => $proposal->id,
                     'supervisor_id' => $proposal->proposed_supervisor_id
@@ -105,17 +107,17 @@ class ProposalService
                 ]);
             }
         }
-        
+
         $proposal->update($updates);
-        
+
         Log::info('Proposal approved', [
             'proposal_id' => $proposal->id,
             'approved_by' => Auth::id(),
             'supervisor_assigned' => isset($updates['supervisor_id'])
         ]);
-        
+
         $proposal->load(['student', 'proposedSupervisor', 'supervisor']);
-        
+
         return $proposal;
     }
 
@@ -130,19 +132,19 @@ class ProposalService
     public function rejectProposal(int $id, string $committeeFeedback): Proposal
     {
         $proposal = Proposal::findOrFail($id);
-        
+
         $proposal->update([
             'status' => 'REJECTED',
             'committee_feedback' => $committeeFeedback,
         ]);
-        
+
         Log::info('Proposal rejected', [
             'proposal_id' => $proposal->id,
             'rejected_by' => Auth::id()
         ]);
-        
+
         $proposal->load(['student', 'proposedSupervisor', 'supervisor']);
-        
+
         return $proposal;
     }
 
@@ -162,35 +164,35 @@ class ProposalService
             'proposal_id' => $id,
             'supervisor_id' => $supervisorId
         ]);
-        
+
         // Verify supervisor exists and has the correct role
         $supervisor = User::findOrFail($supervisorId);
-        
+
         if (!isset($supervisor->role) || $supervisor->role !== User::ROLE_SUPERVISOR) {
             throw new \Exception('The selected user is not a supervisor');
         }
-        
+
         // Get the proposal
         $proposal = Proposal::findOrFail($id);
-        
+
         // Make sure proposal is approved before assigning supervisor
         if ($proposal->status !== 'APPROVED') {
             throw new \Exception('Cannot assign supervisor to a proposal that is not approved');
         }
-        
+
         // Update the proposal
         $proposal->update([
             'supervisor_id' => $supervisorId,
             'supervisor_response' => 'PENDING',
         ]);
-        
+
         Log::info('Supervisor assigned successfully', [
             'proposal_id' => $proposal->id,
             'supervisor_id' => $supervisorId
         ]);
 
         $proposal->load(['student', 'proposedSupervisor', 'supervisor']);
-        
+
         return $proposal;
     }
 
@@ -212,12 +214,12 @@ class ProposalService
         ]);
 
         $proposal = Proposal::with(['student', 'proposedSupervisor', 'supervisor'])->findOrFail($id);
-        
+
         // Check if the proposal has a supervisor assigned
         if ($proposal->supervisor_id === null) {
             throw new \Exception('No supervisor assigned to this proposal');
         }
-        
+
         // Check if the authenticated user is the assigned supervisor
         if (Auth::id() != $proposal->supervisor_id) {
             throw new \Exception('You are not the assigned supervisor for this proposal');
@@ -237,14 +239,14 @@ class ProposalService
         $updateData = [
             'supervisor_response' => $response,
         ];
-        
+
         // If accepted, change the status to IN_PROGRESS
         if ($response === 'ACCEPTED') {
             $updateData['status'] = 'IN_PROGRESS';
         }
-        
+
         $proposal->update($updateData);
-        
+
         Log::info('Updated supervisor response successfully', [
             'proposal_id' => $proposal->id,
             'response' => $response,
@@ -268,9 +270,9 @@ class ProposalService
                     'proposal_id' => $proposal->id,
                     'status' => 'ACTIVE',
                 ]);
-                
+
                 $project->load(['student', 'supervisor']);
-                
+
                 Log::info('Project created successfully', [
                     'project_id' => $project->id,
                     'proposal_id' => $proposal->id,
@@ -285,13 +287,13 @@ class ProposalService
                     'trace' => $e->getTraceAsString(),
                     'proposal_id' => $proposal->id
                 ]);
-                
+
                 // Try to rollback the acceptance
                 $proposal->update([
                     'supervisor_response' => 'PENDING',
                     'status' => 'APPROVED'
                 ]);
-                
+
                 throw new \Exception('Failed to create project after acceptance: ' . $e->getMessage());
             }
         }
@@ -303,15 +305,15 @@ class ProposalService
                 'supervisor_response' => null,
                 // Keep the status as APPROVED - so committee can assign a different supervisor
             ]);
-            
+
             Log::info('Supervisor declined and unassigned successfully', [
                 'proposal_id' => $proposal->id,
                 'former_supervisor_id' => Auth::id()
             ]);
-            
+
             $result['proposal'] = $proposal->fresh(['student', 'proposedSupervisor', 'supervisor']);
         }
 
         return $result;
     }
-} 
+}

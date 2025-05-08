@@ -26,7 +26,7 @@ class UserController extends Controller
                 'request_data' => $request->all(),
                 'valid_roles' => [User::ROLE_STUDENT, User::ROLE_SUPERVISOR, User::ROLE_COMMITTEE_HEAD]
             ]);
-            
+
             $validated = $request->validate([
                 'full_name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
@@ -38,7 +38,7 @@ class UserController extends Controller
             $validated['password'] = Hash::make($validated['password']);
 
             $user = User::create($validated);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'User registered successfully',
@@ -53,8 +53,8 @@ class UserController extends Controller
                 'debug' => [
                     'provided_role' => $request->input('role'),
                     'valid_roles' => [
-                        'STUDENT' => User::ROLE_STUDENT, 
-                        'SUPERVISOR' => User::ROLE_SUPERVISOR, 
+                        'STUDENT' => User::ROLE_STUDENT,
+                        'SUPERVISOR' => User::ROLE_SUPERVISOR,
                         'COMMITTEE_HEAD' => User::ROLE_COMMITTEE_HEAD
                     ]
                 ]
@@ -68,12 +68,6 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Authenticate user and generate token.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function login(Request $request)
     {
         try {
@@ -81,38 +75,26 @@ class UserController extends Controller
                 'email' => 'required|email',
                 'password' => 'required',
             ]);
-
-            if (!Auth::attempt($credentials)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid credentials'
-                ], 401);
+            $user = User::where('email', $credentials['email'])->first();
+            if()
+            // $user = User::first();
+            // dd(Hash::make($credentials['password']) .'      '. $user->password);
+            if ($user && Hash::check($credentials['password'], $user->password)){
+                Auth::login($user);
+                $request->session()->regenerate();
+                // dd('aa');
+                return redirect()->intended(route('dashboard'));
             }
 
-            $user = User::where('email', $request->email)->first();
-            $token = $user->createToken('auth_token')->plainTextToken;
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful',
-                'data' => [
-                    'user' => $user,
-                    'token' => $token,
-                    'token_type' => 'Bearer'
-                ]
-            ], 200);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+        return back()->withErrors(provider: [
+            'email' => 'Invalid credentialsss.',
+        ])->onlyInput('email');
+
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Login failed',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->view('errors.500', [], 404);
+
+
         }
     }
 
@@ -125,14 +107,16 @@ class UserController extends Controller
     public function logout(Request $request)
     {
         try {
-            if ($request->user()) {
-                $request->user()->currentAccessToken()->delete();
-            }
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Successfully logged out'
-            ], 200);
+             // Log out the user
+            Auth::logout();
+
+
+            $request->session()->invalidate();
+
+
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -151,7 +135,7 @@ class UserController extends Controller
     {
         try {
             $users = User::all();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $users
@@ -216,7 +200,7 @@ class UserController extends Controller
     {
         try {
             $user = User::findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $user
@@ -246,7 +230,7 @@ class UserController extends Controller
     {
         try {
             $user = User::findOrFail($id);
-            
+
             $validated = $request->validate([
                 'full_name' => 'sometimes|required|string|max:255',
                 'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($id)],
@@ -299,7 +283,7 @@ class UserController extends Controller
         try {
             $user = User::findOrFail($id);
             $user->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'User deleted successfully'
@@ -327,7 +311,7 @@ class UserController extends Controller
     {
         try {
             $students = User::where('role', User::ROLE_STUDENT)->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $students
@@ -350,7 +334,7 @@ class UserController extends Controller
     {
         try {
             $supervisors = User::where('role', User::ROLE_SUPERVISOR)->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $supervisors
@@ -373,7 +357,7 @@ class UserController extends Controller
     {
         try {
             $committeeHeads = User::where('role', User::ROLE_COMMITTEE_HEAD)->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $committeeHeads
@@ -396,7 +380,7 @@ class UserController extends Controller
     {
         try {
             $departments = User::select('department')->distinct()->pluck('department');
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $departments
@@ -409,4 +393,4 @@ class UserController extends Controller
             ], 500);
         }
     }
-} 
+}

@@ -15,13 +15,33 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
 
-// Authentication routes without middleware for testing
-Route::post('/register', [UserController::class, 'register']);
-// Route::post('/login', [UserController::class, 'login']);
-Route::post('/logout', [UserController::class, 'logout']);
+
+// Auth views routes
+Route::get('/login', function () {
+    return view('sessions.create');
+})->name('login');
+
+Route::get('/register', function () {
+    return view('register.create');
+})->name('register');
+
+// Auth commands routes
+Route::post('/login', [UserController::class, 'login'])->name('api.login');
+Route::post('/register', [UserController::class, 'register'])->name('api.register');
+
+
+// Profile route
+Route::get('/profile', function () {
+    return view('profile');
+})->middleware('auth')->name('profile');
+
+Route::middleware('auth')->group(function(){
+    Route::get('/', function () {
+        return view('dashboard.index');
+    })->name('dashboard');
+
+    Route::get('/logout', [UserController::class, 'logout'])->name('logout');
+});
 
 

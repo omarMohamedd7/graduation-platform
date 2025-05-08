@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class StoreProposalRequest extends FormRequest
 {
@@ -14,8 +15,25 @@ class StoreProposalRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Only authenticated users (primarily students) can create proposals
-        return Auth::check();
+        $user = Auth::user();
+        
+        // Only students can create proposals
+        if (!$user || $user->role !== User::ROLE_STUDENT) {
+            Log::warning('Unauthorized proposal creation attempt', [
+                'user_id' => $user ? $user->id : null,
+                'user_role' => $user ? $user->role : null,
+                'ip' => $this->ip()
+            ]);
+            
+            return false;
+        }
+        
+        Log::info('Proposal creation request authorized', [
+            'user_id' => $user->id,
+            'student_name' => $user->full_name
+        ]);
+        
+        return true;
     }
 
     /**
@@ -57,6 +75,12 @@ class StoreProposalRequest extends FormRequest
             $supervisor = User::find($this->proposed_supervisor_id);
             
             if (!$supervisor || $supervisor->role !== User::ROLE_SUPERVISOR) {
+                Log::warning('Invalid supervisor role specified in proposal', [
+                    'proposed_supervisor_id' => $this->proposed_supervisor_id,
+                    'actual_role' => $supervisor ? $supervisor->role : 'user not found',
+                    'user_id' => Auth::id()
+                ]);
+                
                 throw ValidationException::withMessages([
                     'proposed_supervisor_id' => 'The selected user is not a supervisor',
                 ]);

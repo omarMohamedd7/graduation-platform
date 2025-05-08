@@ -30,4 +30,12 @@ class ProjectUpdate extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /**
+     * Get all documents associated with this project update
+     */
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
 }

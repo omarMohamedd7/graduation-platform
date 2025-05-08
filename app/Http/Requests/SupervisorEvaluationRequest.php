@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-class RejectProposalRequest extends FormRequest
+class SupervisorEvaluationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,24 +15,21 @@ class RejectProposalRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
-        $proposalId = $this->route('id');
         
-        // Only committee heads can reject proposals
-        if (!$user || $user->role !== User::ROLE_COMMITTEE_HEAD) {
-            Log::warning('Unauthorized proposal rejection attempt', [
+        // Only supervisors can submit supervisor evaluations
+        if (!$user || $user->role !== User::ROLE_SUPERVISOR) {
+            Log::warning('Unauthorized supervisor evaluation attempt', [
                 'user_id' => $user ? $user->id : null,
                 'user_role' => $user ? $user->role : null,
-                'proposal_id' => $proposalId,
                 'ip' => $this->ip()
             ]);
             
             return false;
         }
         
-        Log::info('Proposal rejection request authorized', [
+        Log::info('Supervisor evaluation request authorized', [
             'user_id' => $user->id,
-            'committee_head_name' => $user->full_name,
-            'proposal_id' => $proposalId
+            'supervisor_name' => $user->full_name
         ]);
         
         return true;
@@ -46,18 +43,25 @@ class RejectProposalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'committee_feedback' => 'required|string',
+            'evaluation_id' => 'required|exists:project_evaluations,id',
+            'supervisor_score' => 'required|numeric|min:0|max:100',
         ];
     }
-    
+
     /**
      * Get the error messages for the defined validation rules.
+     *
+     * @return array<string, string>
      */
     public function messages(): array
     {
         return [
-            'committee_feedback.required' => 'Feedback is required when rejecting a proposal',
-            'committee_feedback.string' => 'Feedback must be a text string',
+            'evaluation_id.required' => 'An evaluation ID is required',
+            'evaluation_id.exists' => 'The selected evaluation does not exist',
+            'supervisor_score.required' => 'A score is required',
+            'supervisor_score.numeric' => 'The score must be a number',
+            'supervisor_score.min' => 'The score must be at least 0',
+            'supervisor_score.max' => 'The score cannot be greater than 100',
         ];
     }
-}
+} 

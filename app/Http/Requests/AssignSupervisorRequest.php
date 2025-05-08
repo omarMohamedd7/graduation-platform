@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AssignSupervisorRequest extends FormRequest
@@ -14,8 +15,28 @@ class AssignSupervisorRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        $user = Auth::user();
+        $proposalId = $this->route('id');
+        
         // Only committee heads can assign supervisors
-        return Auth::check() && Auth::user()->role === User::ROLE_COMMITTEE_HEAD;
+        if (!$user || $user->role !== User::ROLE_COMMITTEE_HEAD) {
+            Log::warning('Unauthorized supervisor assignment attempt', [
+                'user_id' => $user ? $user->id : null,
+                'user_role' => $user ? $user->role : null,
+                'proposal_id' => $proposalId,
+                'ip' => $this->ip()
+            ]);
+            
+            return false;
+        }
+        
+        Log::info('Supervisor assignment request authorized', [
+            'user_id' => $user->id,
+            'committee_head_name' => $user->full_name,
+            'proposal_id' => $proposalId
+        ]);
+        
+        return true;
     }
 
     /**

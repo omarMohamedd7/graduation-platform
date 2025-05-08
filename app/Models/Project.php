@@ -52,4 +52,20 @@ class Project extends Model
     {
         return $this->hasMany(SupervisorNote::class);
     }
+
+    /**
+     * Get all documents associated with this project
+     */
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
+    /**
+     * Get the evaluation for this project
+     */
+    public function evaluation()
+    {
+        return $this->hasOne(ProjectEvaluation::class);
+    }
 }

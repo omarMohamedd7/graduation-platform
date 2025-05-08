@@ -15,7 +15,7 @@ class ProposalResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
+            'proposal_id' => $this->id,
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,
@@ -29,16 +29,14 @@ class ProposalResource extends JsonResource
                 return new UserResource($this->whenLoaded('supervisor'));
             }),
             
-            // Add helpful computed properties for frontend
-            'has_proposed_supervisor' => (bool) $this->proposed_supervisor_id,
-            'has_assigned_supervisor' => (bool) $this->supervisor_id,
-            'needs_supervisor_assignment' => $this->status === 'APPROVED' && !$this->supervisor_id,
-            'awaiting_supervisor_response' => $this->supervisor_id && $this->supervisor_response === 'PENDING',
-            'is_in_progress' => $this->status === 'IN_PROGRESS',
+            // // Add helpful computed properties for frontend
+            // 'has_proposed_supervisor' => (bool) $this->proposed_supervisor_id,
+            // 'has_assigned_supervisor' => (bool) $this->supervisor_id,
+            // 'needs_supervisor_assignment' => $this->status === 'APPROVED' && !$this->supervisor_id,
+            // 'awaiting_supervisor_response' => $this->supervisor_id && $this->supervisor_response === 'PENDING',
+            // 'is_in_progress' => $this->status === 'IN_PROGRESS',
             
-            // Timestamps
-            'created_at' => $this->created_at->toDateTimeString(),
-            'updated_at' => $this->updated_at->toDateTimeString(),
+
         ];
     }
 }

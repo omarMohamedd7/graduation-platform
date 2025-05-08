@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-class RejectProposalRequest extends FormRequest
+class InitializeEvaluationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,24 +15,21 @@ class RejectProposalRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
-        $proposalId = $this->route('id');
         
-        // Only committee heads can reject proposals
+        // Only committee heads can initialize evaluations
         if (!$user || $user->role !== User::ROLE_COMMITTEE_HEAD) {
-            Log::warning('Unauthorized proposal rejection attempt', [
+            Log::warning('Unauthorized evaluation initialization attempt', [
                 'user_id' => $user ? $user->id : null,
                 'user_role' => $user ? $user->role : null,
-                'proposal_id' => $proposalId,
                 'ip' => $this->ip()
             ]);
             
             return false;
         }
         
-        Log::info('Proposal rejection request authorized', [
+        Log::info('Evaluation initialization request authorized', [
             'user_id' => $user->id,
-            'committee_head_name' => $user->full_name,
-            'proposal_id' => $proposalId
+            'committee_head_name' => $user->full_name
         ]);
         
         return true;
@@ -46,18 +43,23 @@ class RejectProposalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'committee_feedback' => 'required|string',
+            'project_id' => 'required|exists:projects,id',
+            'committee_head_id' => 'required|exists:users,id',
         ];
     }
-    
+
     /**
      * Get the error messages for the defined validation rules.
+     *
+     * @return array<string, string>
      */
     public function messages(): array
     {
         return [
-            'committee_feedback.required' => 'Feedback is required when rejecting a proposal',
-            'committee_feedback.string' => 'Feedback must be a text string',
+            'project_id.required' => 'A project ID is required',
+            'project_id.exists' => 'The selected project does not exist',
+            'committee_head_id.required' => 'A committee head ID is required',
+            'committee_head_id.exists' => 'The selected committee head does not exist',
         ];
     }
-}
+} 

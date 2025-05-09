@@ -3,10 +3,46 @@
   'proposals',
   'projects'
 ])
+@php
+$activeCount = $projects->where('status', 'ACTIVE')->count();
+$proposalPendingCount = $proposals->where('status', 'PENDING')->count();
+$completedCount = $projects->where('status', 'COMPLETED')->count();
+@endphp
 {{-- resources/views/dashboard/index.blade.php --}}
 <x-layout bodyClass="g-sidenav-show bg-gray-200">
     <main class="main-content …">
-        
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Active Projects</h5>
+                    <span class="display-4">{{ $activeCount }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Pending Proposals</h5>
+                    <span class="display-4">{{ $proposalPendingCount }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Completed Projects</h5>
+                    <span class="display-4">{{ $completedCount }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
         @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}

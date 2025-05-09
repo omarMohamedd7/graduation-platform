@@ -21,8 +21,8 @@ class dashboard_controller extends Controller
             $projects_content = $request->user()->getProjectsForCommitteeHead();
         else
             $projects_content = $request->user()->project;
-        if($request->user()->role == User::ROLE_STUDENT)
-            $project_updates = ProjectUpdate::where('project_id', $request->user()->project->id)->get();
+        if($request->user()->role == User::ROLE_STUDENT && $projects_content !=NULL )
+            $project_updates = ProjectUpdate::where('project_id', operator: $request->user()->project->id)->get();
 
         return view('dashboard.index', compact('proposal_content', 'supervisors','projects_content','project_updates'));
 

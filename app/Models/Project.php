@@ -68,4 +68,7 @@ class Project extends Model
     {
         return $this->hasOne(ProjectEvaluation::class);
     }
+    public function updates(){
+        return $this->hasMany(ProjectUpdate::class,'project_id');
+    }
 }

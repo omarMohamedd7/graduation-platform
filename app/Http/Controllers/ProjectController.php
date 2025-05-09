@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Services\DocumentService;
 use Illuminate\Http\Request;
+use App\Services\DocumentService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class ProjectController extends Controller
 {
@@ -48,4 +49,40 @@ class ProjectController extends Controller
             'documentableId' => $project->id
         ]);
     }
-} 
+
+    public function evaluate(Request $request)
+    {
+        try{
+            // dd($request);
+            $request->validate([
+            'mark' => 'required|integer|min:0|max:100',
+            'project_id' => 'required|exists:projects,id'
+        ], [
+            'mark.required' => 'Please enter a mark.',
+            'mark.integer' => 'The mark must be a number.',
+            'mark.min' => 'The mark cannot be less than 0.',
+            'mark.max' => 'The mark cannot be greater than 100.',
+        ]);
+
+            $project= Project::find($request->project_id);
+            $project->mark = $request->mark;
+            $project->save();
+
+            // Optional: Redirect or return response
+            return redirect()->back()->with('success', 'Mark updated successfully.');
+        }
+        catch (ValidationException $e) {
+        // Let Laravel handle it normally (redirect back with errors)
+        throw $e;
+        }
+         catch (\Exception $e) {
+            dd($e);
+            return  response()->view('errors.500');
+         }
+
+    }
+
+
+
+
+}

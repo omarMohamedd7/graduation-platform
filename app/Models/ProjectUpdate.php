@@ -12,7 +12,9 @@ class ProjectUpdate extends Model
     protected $fillable = [
         'project_id',
         'content',
-        'created_by',
+        'attachment_path',
+        'supervisor_notes',
+        'evaluation',
     ];
 
     /**

@@ -19,6 +19,8 @@ return new class extends Migration
             $table->foreignId('supervisor_id')->nullable()->constrained('users');
             $table->foreignId('proposal_id')->constrained('proposals');
             $table->enum('status', ['ACTIVE', 'COMPLETED', 'SUSPENDED'])->default('ACTIVE');
+            $table->integer('mark')->nullable();
+
             $table->timestamps();
         });
     }

@@ -2,22 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ApproveProposalRequest;
-use App\Http\Requests\AssignSupervisorRequest;
-use App\Http\Requests\RejectProposalRequest;
-use App\Http\Requests\StoreProposalRequest;
-use App\Http\Requests\SupervisorResponseRequest;
+use App\Models\User;
+use App\Models\Project;
+use App\Models\Proposal;
+use Illuminate\Http\Request;
+use App\Services\ProposalService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProposalResource;
-use App\Models\Proposal;
-use App\Models\User;
-use App\Services\ProposalService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\StoreProposalRequest;
+use App\Http\Requests\RejectProposalRequest;
+use App\Http\Requests\ApproveProposalRequest;
+use App\Http\Requests\AssignSupervisorRequest;
+use Illuminate\Validation\ValidationException;
+use App\Http\Requests\SupervisorResponseRequest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+
 class ProposalController extends Controller
 {
     /**
@@ -63,7 +65,6 @@ class ProposalController extends Controller
         try {
 
             $proposal = $this->proposalService->storeProposal($request->validated());
-
             return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error creating proposal', [
@@ -75,7 +76,7 @@ class ProposalController extends Controller
     }
     }
 
-    // COMMITTEE_HEAD or SUPERVISOR: View all proposals
+    // COMMITTEE_HEAD : View all proposals
     public function index()
     {
         try {
@@ -128,74 +129,34 @@ class ProposalController extends Controller
     }
 
     // COMMITTEE_HEAD: Approve a proposal
-    public function approve(ApproveProposalRequest $request, $id)
+    public function approve(ApproveProposalRequest $request)
     {
-        try {
-            $proposal = $this->proposalService->approveProposal(
-                $id,
-                $request->input('committee_feedback')
-            );
 
-            return $this->formatResponse(
-                $proposal->supervisor_id
-                    ? 'Proposal approved and proposed supervisor assigned'
-                    : 'Proposal approved',
-                new ProposalResource($proposal)
-            );
-        } catch (ModelNotFoundException $e) {
-            return $this->formatResponse(
-                'Proposal not found',
-                null,
-                ['proposal_id' => 'The requested proposal does not exist'],
-                404
-            );
-        } catch (\Exception $e) {
-            Log::error('Error in proposal approval', [
-                'error' => $e->getMessage(),
-                'proposal_id' => $id
-            ]);
-            return $this->formatResponse(
-                'Error in proposal approval',
-                null,
-                ['error' => $e->getMessage()],
-                500
-            );
+        try {
+            $data = $request->validated();
+            $this->proposalService->approveProposal($data);
+
+            if($request->status == 'APPROVED'){
+
+                $proposal = Proposal::find($data['proposal_id']);
+                Project::create([
+                    'title' => $proposal->title,
+                    'description' => $proposal->description,
+                    'student_id' => $proposal->student_id,
+                    'supervisor_id' => $data['supervisor_id'],
+                    'proposal_id' => $proposal->id
+                ]);
+                // dd('asdasd');
+            }
+            return redirect()->back();
+
+        }
+        catch (\Exception $e) {
+             response()->view('errors.500');
         }
     }
 
-    // COMMITTEE_HEAD: Reject a proposal
-    public function reject(RejectProposalRequest $request, $id)
-    {
-        try {
-            $proposal = $this->proposalService->rejectProposal(
-                $id,
-                $request->input('committee_feedback')
-            );
 
-            return $this->formatResponse(
-                'Proposal rejected',
-                new ProposalResource($proposal)
-            );
-        } catch (ModelNotFoundException $e) {
-            return $this->formatResponse(
-                'Proposal not found',
-                null,
-                ['proposal_id' => 'The requested proposal does not exist'],
-                404
-            );
-        } catch (\Exception $e) {
-            Log::error('Error in proposal rejection', [
-                'error' => $e->getMessage(),
-                'proposal_id' => $id
-            ]);
-            return $this->formatResponse(
-                'Error in proposal rejection',
-                null,
-                ['error' => $e->getMessage()],
-                500
-            );
-        }
-    }
 
     // COMMITTEE_HEAD: Assign supervisor to a proposal
     public function assignSupervisor(AssignSupervisorRequest $request, $id)

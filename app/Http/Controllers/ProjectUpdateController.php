@@ -24,7 +24,7 @@ class ProjectUpdateController extends Controller
         try {
             // Find the project
             $project = Project::findOrFail($id);
-            
+
             // Check if the authenticated user is the owner of the project
             $user = Auth::user();
             if (!$user) {
@@ -61,7 +61,7 @@ class ProjectUpdateController extends Controller
 
             // Fetch project updates
             $updates = $project->projectUpdates()->with('author')->latest()->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => ProjectUpdateResource::collection($updates),
@@ -88,62 +88,34 @@ class ProjectUpdateController extends Controller
         }
     }
 
-    /**
-     * Store a newly created project update.
-     *
-     * @param StoreProjectUpdateRequest $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+
     public function store(StoreProjectUpdateRequest $request)
     {
         try {
             $validated = $request->validated();
-            
-            // Log validation success and request details for debugging
-            Log::info('Project update validation passed', [
-                'user_id' => Auth::id(),
-                'project_id' => $validated['project_id'],
-                'content_length' => strlen($validated['content'])
-            ]);
-            
-            // Add the authenticated user's ID as the creator
-            $validated['created_by'] = Auth::id();
-            
-            // Check if the authenticated user is the student or supervisor for the project
             $user = Auth::user();
             $project = Project::findOrFail($validated['project_id']);
-            
+
             if ($user->role === User::ROLE_STUDENT && $project->student_id !== $user->id) {
-                Log::warning('Unauthorized project update attempt - Student not allowed', [
-                    'user_id' => $user->id,
-                    'project_id' => $validated['project_id']
-                ]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not authorized to update this project.',
-                ], 403);
+                return redirect()->back();
             }
 
             if ($user->role === User::ROLE_SUPERVISOR && $project->supervisor_id !== $user->id) {
-                Log::warning('Unauthorized project update attempt - Supervisor not allowed', [
-                    'user_id' => $user->id,
-                    'project_id' => $validated['project_id']
-                ]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not authorized to update this project.',
-                ], 403);
+                 return redirect()->back();
+            }
+            $filePath = null;
+            if ($request->hasFile('attachment')) {
+                $filePath = $request->file('attachment')->store('project_updates', 'public');
             }
 
-            // Create the project update
-            $update = ProjectUpdate::create($validated);
-            $update->load('author');
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Project update created successfully.',
-                'data' => new ProjectUpdateResource($update),
-            ], 201);
+            ProjectUpdate::create([
+                'project_id' => $validated['project_id'],
+                'content' => $validated['content'],
+                'attachment_path' => $filePath, // null if no file uploaded
+            ]);
+            return redirect()->back()->with('success', 'Update submitted successfully.');
+
+
         } catch (\Exception $e) {
             // Log the detailed error
             Log::error('Failed to create project update', [
@@ -151,14 +123,35 @@ class ProjectUpdateController extends Controller
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create project update.',
-                'error' => $e->getMessage(),
-            ], 500);
+
+            return redirect()->back()
+                ->with('error', 'Failed to add update ');
         }
     }
+    public function updateEvaluation(Request $request)
+{
+    // dd($request);
+    // Validate request input
+    $validated = $request->validate([
+        'notes' => 'nullable|string',
+        'evaluation' => 'required|in:AGREE,DISAGREE',
+        'update_id' => 'required|exists:project_updates,id'
+    ]);
+    // Find the update
+    $update = ProjectUpdate::findOrFail($validated['update_id']);
 
-    // Other methods (show, update, destroy) can be implemented similarly with appropriate role checks and logging.
+    // Check if the current user is the supervisor of the associated project
+    $user = Auth::user();
+    if ($user->role !== User::ROLE_SUPERVISOR || $update->project->supervisor_id !== $user->id) {
+        return redirect()->back()->with('error', 'Unauthorized access.');
+    }
+    // Update the evaluation
+    $update->supervisor_notes = $validated['notes'];
+    $update->evaluation = $validated['evaluation'];
+    $update->save();
+
+    return redirect()->back()->with('success', 'Evaluation updated successfully.');
+}
+
+
 }

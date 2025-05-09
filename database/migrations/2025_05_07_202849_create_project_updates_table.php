@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->text('content');
-            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+            $table->string('attachment_path')->nullable();
+            $table->text('supervisor_notes')->nullable();
+            $table->enum('evaluation',['AGREE', 'DISAGREE'])->nullable();
             $table->timestamps();
         });
     }

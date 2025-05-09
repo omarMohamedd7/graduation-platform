@@ -6,20 +6,17 @@
         {{-- @extends(view: 'layouts.app') --}}
 
         <div class="container-fluid py-4">
-            @if(auth()->user()->role === 'admin')
+            <h1>Welcome, {{ auth()->user()->full_name }}!</h1>
+            @if(auth()->user()->role === 'COMMITTEE_HEAD')
                 <!-- Admin Content -->
-                <h1>Welcome, Admin!</h1>
-                {{-- <!-- Here you can add specific admin stats or content -->
-                <x-dashboard.admin titlePage="Admin Dashboard" /> --}}
-            @elseif(auth()->user()->role === 'manager')
-                <!-- Manager Content -->
-                {{-- <h1>Welcome, Manager!</h1>
-                <!-- Specific content for managers -->
-                <x-dashboard.manager titlePage="Manager Dashboard" /> --}}
+                <x-dashboard.head :proposals="$proposal_content" :supervisors="$supervisors" :projects="$projects_content" />
+            @elseif(auth()->user()->role === 'SUPERVISOR')
+
+                <x-dashboard.super :projects="$projects_content" />
             @else
                 <!-- Regular User Content -->
-                <h1>Welcome, {{ auth()->user()->name }}!</h1>
-                + <x-dashboard.user :proposal="$proposal"/>
+
+                <x-dashboard.user :proposal="$proposal_content" :project="$projects_content"  :projectupdates="$project_updates" />
             @endif
         </div>
 

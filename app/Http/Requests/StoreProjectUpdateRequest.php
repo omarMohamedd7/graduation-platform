@@ -18,19 +18,19 @@ class StoreProjectUpdateRequest extends FormRequest
         // Only students who own the project can create updates
         try {
             $user = Auth::user();
-            
+
             // Log the authorization attempt
             Log::info('Project update authorization attempt', [
                 'user_id' => $user ? $user->id : null,
                 'role' => $user ? $user->role : null,
                 'project_id' => $this->input('project_id') ?? $this->route('id')
             ]);
-            
+
             if (!$user) {
                 Log::warning('Project update authorization failed: No authenticated user');
                 return false;
             }
-            
+
             if ($user->role !== User::ROLE_STUDENT) {
                 Log::warning('Project update authorization failed: User is not a student', [
                     'actual_role' => $user->role
@@ -40,30 +40,30 @@ class StoreProjectUpdateRequest extends FormRequest
 
             // If project_id is in the path parameters, use that
             $projectId = $this->route('id') ?? $this->input('project_id');
-            
+
             if (!$projectId) {
                 Log::warning('Project update authorization failed: No project ID provided');
                 return false;
             }
 
             $project = Project::find($projectId);
-            
+
             if (!$project) {
                 Log::warning('Project update authorization failed: Project not found', [
                     'project_id' => $projectId
                 ]);
                 return false;
             }
-            
+
             $isOwner = $project->student_id === $user->id;
-            
+
             if (!$isOwner) {
                 Log::warning('Project update authorization failed: User is not the project owner', [
                     'user_id' => $user->id,
                     'project_owner_id' => $project->student_id
                 ]);
             }
-            
+
             return $isOwner;
         } catch (\Exception $e) {
             Log::error('Error during project update authorization', [
@@ -82,8 +82,11 @@ class StoreProjectUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => 'required|string|max:10000',
-            'project_id' => 'required_without:id|exists:projects,id',
+        'project_id' => 'required|exists:projects,id',
+        'content' => 'required|string|max:5000',
+        'attachment' => 'nullable|file|mimes:pdf,doc,docx,zip,jpg,jpeg,png|max:20480', // Max 20MB
+
+
         ];
     }
 

@@ -18,33 +18,43 @@ class ProposalService
      * @return Proposal The created proposal
      */
     public function storeProposal(array $data): Proposal
-    {
-        Log::info('Creating proposal', [
-            'user_id' => Auth::id(),
-            'authenticated' => Auth::check(),
-            'request_data' => $data
-        ]);
-        $user_department = Auth::user()->department;
-        $Head_id = User::where('department', $user_department)->where('role',User::ROLE_COMMITTEE_HEAD)->first()->id;
+{
+    Log::info('Creating or updating proposal', [
+        'user_id' => Auth::id(),
+        'authenticated' => Auth::check(),
+        'request_data' => $data
+    ]);
 
-        $proposal = Proposal::create([
-            'student_id' => Auth::user()->id,
+    $user = Auth::user();
+    $existingProposal = $user->proposal; // Assuming user has `proposal()` relationship defined
+
+    $user_department = $user->department;
+    $head = User::where('department', $user_department)
+                ->where('role', User::ROLE_COMMITTEE_HEAD)
+                ->first();
+
+    if ($existingProposal) {
+        // Update the existing proposal
+        $existingProposal->update([
             'title' => $data['title'],
             'description' => $data['description'],
-            'department_head' => $Head_id ?? null,
+            'status' => 'PENDING',
+            'department_head' => $head?->id,
+        ]);
+        return $existingProposal;
+    } else {
+        // Create a new proposal
+        $proposal = Proposal::create([
+            'student_id' => $user->id,
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'department_head' => $head?->id,
             'status' => 'PENDING',
         ]);
-
-        Log::info('Proposal created successfully', [
-            'proposal_id' => $proposal->id,
-            'student_id' => Auth::user()->id,
-            'proposed_supervisor_id' => $data['proposed_supervisor_id'] ?? null
-        ]);
-
-        $proposal->load(['student', 'proposedSupervisor']);
-
         return $proposal;
     }
+}
+
 
     /**
      * Get all proposals with related data
@@ -76,48 +86,21 @@ class ProposalService
      * @return Proposal The updated proposal
      * @throws ModelNotFoundException
      */
-    public function approveProposal(int $id, ?string $committeeFeedback = null): Proposal
+    public function approveProposal($data,): Proposal
     {
-        $proposal = Proposal::findOrFail($id);
 
+        $proposal = Proposal::findOrFail($data['proposal_id']);
+        // dd($proposal);
         // Check if there's a proposed supervisor
         $updates = [
-            'status' => 'APPROVED',
-            'committee_feedback' => $committeeFeedback,
+            'status' => $data['status'],
+            'committee_feedback' => $data['feedback'] ?? null,
+
         ];
 
-        // If there's a proposed supervisor, automatically assign them
-        if ($proposal->proposed_supervisor_id) {
-            // Verify the proposed supervisor is valid
-            $supervisor = User::findOrFail($proposal->proposed_supervisor_id);
 
-            if ($supervisor->role === User::ROLE_SUPERVISOR) {
-                $updates['supervisor_id'] = $proposal->proposed_supervisor_id;
-                $updates['supervisor_response'] = 'PENDING';
-
-                Log::info('Automatically assigned proposed supervisor', [
-                    'proposal_id' => $proposal->id,
-                    'supervisor_id' => $proposal->proposed_supervisor_id
-                ]);
-            } else {
-                Log::warning('Proposed supervisor does not have SUPERVISOR role', [
-                    'proposal_id' => $proposal->id,
-                    'proposed_supervisor_id' => $proposal->proposed_supervisor_id,
-                    'role' => $supervisor->role ?? 'NULL'
-                ]);
-            }
-        }
-
+        // dd($updates);
         $proposal->update($updates);
-
-        Log::info('Proposal approved', [
-            'proposal_id' => $proposal->id,
-            'approved_by' => Auth::id(),
-            'supervisor_assigned' => isset($updates['supervisor_id'])
-        ]);
-
-        $proposal->load(['student', 'proposedSupervisor', 'supervisor']);
-
         return $proposal;
     }
 

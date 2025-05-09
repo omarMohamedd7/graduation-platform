@@ -16,7 +16,7 @@ class ApproveProposalRequest extends FormRequest
     {
         $user = Auth::user();
         $proposalId = $this->route('id');
-        
+
         // Only committee heads can approve proposals
         if (!$user || $user->role !== User::ROLE_COMMITTEE_HEAD) {
             Log::warning('Unauthorized proposal approval attempt', [
@@ -25,16 +25,16 @@ class ApproveProposalRequest extends FormRequest
                 'proposal_id' => $proposalId,
                 'ip' => $this->ip()
             ]);
-            
+
             return false;
         }
-        
+
         Log::info('Proposal approval request authorized', [
             'user_id' => $user->id,
             'committee_head_name' => $user->full_name,
             'proposal_id' => $proposalId
         ]);
-        
+
         return true;
     }
 
@@ -46,10 +46,16 @@ class ApproveProposalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'committee_feedback' => 'nullable|string',
+            'feedback' => 'nullable|string',
+            'status' => 'required|string',
+            'proposal_id'=> 'required',
+
+
+            'supervisor_id' => 'required_if:status,APPROVED'
+
         ];
     }
-    
+
     /**
      * Get the error messages for the defined validation rules.
      */

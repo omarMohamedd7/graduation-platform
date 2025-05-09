@@ -76,12 +76,50 @@ class User extends Authenticatable
     /**
      * Check if user is a committee head
      */
+    public function getRelevantProposal()
+    {
+        $x = match($this->role) {
+            User::ROLE_COMMITTEE_HEAD => Proposal::where('department_head', $this->id)->get(),
+            User::ROLE_STUDENT => Proposal::where('student_id', $this->id)->first(),
+            default => null,
+            };
+        dd($x);
+}
+
     public function isCommitteeHead(): bool
     {
         return $this->role === self::ROLE_COMMITTEE_HEAD;
     }
+
     public function proposal()
-        {
-        return $this->hasOne(Proposal::class, 'student_id');
-        }
+    {
+        if ($this->isCommitteeHead()){
+            // dd($this->id);
+            // dd(Proposal::where('department_head',2)->get());
+
+            return $this->hasMany(Proposal::class, 'department_head');}
+        else if ($this->isStudent())
+            return $this->hasOne(Proposal::class, 'student_id');
+
+    }
+    public function project()
+    {
+
+        if ($this->isStudent())
+            return $this->hasOne(Project::class, 'student_id');
+        else if($this->isSupervisor())
+            return $this->hasMany(Project::class, 'supervisor_id');
+        return null;
+
+    }
+    public function getProjectsForCommitteeHead()
+{
+    if ($this->isCommitteeHead()) {
+        $projects = Project::whereHas('student', function ($query) {
+            $query->where('department', $this->department);
+        })->get();
+
+        return $projects;
+    }
+}
 }

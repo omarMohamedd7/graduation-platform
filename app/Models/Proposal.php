@@ -15,9 +15,7 @@ class Proposal extends Model
         'description',
         'status',
         'committee_feedback',
-        'proposed_supervisor_id',
-        'supervisor_id',
-        'supervisor_response'
+        'department_head'
     ];
 
     protected $casts = [
@@ -30,13 +28,9 @@ class Proposal extends Model
         return $this->belongsTo(User::class, 'student_id');
     }
 
-    public function proposedSupervisor()
+    public function department_head()
     {
-        return $this->belongsTo(User::class, 'proposed_supervisor_id');
+        return $this->belongsTo(User::class, 'department_head');
     }
 
-    public function supervisor()
-    {
-        return $this->belongsTo(User::class, 'supervisor_id');
-    }
 }

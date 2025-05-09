@@ -173,10 +173,10 @@ class ProjectEvaluationController extends Controller
         try {
             // Verify the project exists
             $project = Project::findOrFail($projectId);
-            
+
             // Check if user has permission to view this project's evaluation
-            if (Auth::id() != $project->student_id && 
-                Auth::id() != $project->supervisor_id && 
+            if (Auth::id() != $project->student_id &&
+                Auth::id() != $project->supervisor_id &&
                 Auth::user()->role != 'COMMITTEE_HEAD') {
                 return $this->formatResponse(
                     'You do not have permission to view this project\'s evaluation',
@@ -185,9 +185,9 @@ class ProjectEvaluationController extends Controller
                     403
                 );
             }
-            
+
             $evaluation = $this->evaluationService->getEvaluationForProject($projectId);
-            
+
             if (!$evaluation) {
                 return $this->formatResponse(
                     'No evaluation found for this project',
@@ -230,11 +230,11 @@ class ProjectEvaluationController extends Controller
     {
         try {
             $evaluation = $this->evaluationService->getEvaluationById($id);
-            
+
             // Check if user has permission to view this evaluation
             $project = $evaluation->project;
-            if (Auth::id() != $project->student_id && 
-                Auth::id() != $project->supervisor_id && 
+            if (Auth::id() != $project->student_id &&
+                Auth::id() != $project->supervisor_id &&
                 Auth::user()->role != 'COMMITTEE_HEAD') {
                 return $this->formatResponse(
                     'You do not have permission to view this evaluation',
@@ -269,4 +269,6 @@ class ProjectEvaluationController extends Controller
             );
         }
     }
-} 
+
+    
+}
